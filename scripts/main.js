@@ -16,7 +16,7 @@ require(
         'jquery',
         'underscore',
         'backbone',
-        'models/game',
+        'models/gameWithPerfectCPU',
         'models/scoreboard',
         'views/gameView',
         'views/scoreboardView'
@@ -25,12 +25,12 @@ require(
         $,
         _,
         Backbone,
-        Game,
+        GameWithPerfectCPU,
         Scoreboard,
         GameView,
         ScoreboardView
     ) {
-        var currentGame = new Game(),
+        var currentGame = new GameWithPerfectCPU(),
             scoreboard = new Scoreboard(),
             gameView,
             scoreboardView;
@@ -49,6 +49,6 @@ require(
         scoreboardView.render();
 
         scoreboard.listenTo(gameView, "win", scoreboard.incrementScore);
-        scoreboard.listenTo(gameView, "turnChange", scoreboard.changeTurn);
+        scoreboard.listenTo(currentGame, "change:currentTurn", scoreboard.changeTurn);
     }
 );

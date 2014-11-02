@@ -4,9 +4,9 @@ define(
 
         var Scoreboard = Backbone.Model.extend({
             defaults: {
+                currentTurn: "o",
                 oScore: 0,
                 xScore: 0,
-                currentTurn: "o"
             },
 
             incrementScore: function(player) {
@@ -15,9 +15,9 @@ define(
                 this.set(key, this.get(key) + 1);
             },
 
-            changeTurn: function(player) {
-                this.set("currentTurn", player);
-            }
+            changeTurn: function(game) {
+-                this.set("currentTurn", game.get("currentTurn"));
+             }
         });
 
         return Scoreboard;

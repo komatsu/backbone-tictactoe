@@ -5,11 +5,11 @@ define(
         var GameView = Backbone.View.extend({
 
             template: $("#gameTemplate").html(),
-            oMarker: $("#o-marker").html(),
-            xMarker: $("#x-marker").html(),
+            humanMarker: $("#o-marker").html(),
+            cpuMarker: $("#x-marker").html(),
 
             events: {
-                "click .e-game-cell": "makeMove",
+                "click .e-game-cell": "makeHumanMove",
             },
 
             render: function() {
@@ -21,13 +21,10 @@ define(
                 this.$(".e-reset-btn").off();
                 this.model.set(this.model.defaults());
                 this.render().delegateEvents();
-                this.trigger("turnChange", this.model.get("currentTurn"));
             },
 
-            makeMove: function(evt) {
+            makeHumanMove: function(evt) {
                 var $target = $(evt.currentTarget),
-                    currentPlayer = this.model.get("currentTurn"),
-                    nextPlayer,
                     row,
                     col,
                     marker,
@@ -37,37 +34,61 @@ define(
                 row = $target.data("row");
                 col = $target.data("col");
 
-                //Ignore cells that were already selected
-                if (this.model.get("cells")[row][col]) {
+                //Ignore clicks during cpu turn or cells that were already selected
+                if (this.model.get("currentTurn") === this.model.cpuPlayer ||
+                        this.model.get("cells")[row][col]) {
                     return;
                 }
 
-                this.model.markCell(currentPlayer, row, col);
-
-                if (currentPlayer === "o") {
-                    marker = this.oMarker;
-                    nextPlayer = "x";
-                }
-                else { //x's turn
-                    marker = this.xMarker;
-                    nextPlayer = "o";
-                }
-
-                $target.removeClass("open").append(marker);
+                this.model.markCell(this.model.humanPlayer, row, col);
+                $target.removeClass("open").append(this.humanMarker);
 
                 //Check game state for win or tie after this move
-                winCells = this.model.verifyWin(currentPlayer, row, col);
+                winCells = this.model.getWinningSet(this.model.get("cells"), this.humanPlayer);
 
-                if (!winCells) {
-                    this.model.set("currentTurn", nextPlayer);
-                    this.trigger("turnChange", nextPlayer); //Scoreboard will update turn icon
+                if (winCells) {
+                    this.trigger("win", this.model.humanPlayer); //Scoreboard will update on "win" event
+                    this.showWinners(winCells);
                 }
-                else if (winCells === "tie") {
+                else if (!winCells && this.model.isGameOver(this.model.get("cells"))) {
+                    this.endGame(); //Game ended in a tie
+                }
+                else { //CPU's turn
+                    this.model.set("currentTurn", this.model.cpuPlayer);
+
+                    //Hack - the browser will try to run makeCPUMove prior to
+                    //rendering the player's Circle, causing a noticeable delay.
+                    //Having the setTimeout will allow the UI to finish updating
+                    //before the minimax algorithm starts calculating.
+                    setTimeout(this.makeCPUMove.bind(this), null);
+                }
+            },
+
+            makeCPUMove: function() {
+                var bestMove,
+                    row,
+                    col,
+                    winCells;
+
+                this.model.getCPUMove(this.model.get("cells"), this.model.cpuPlayer, 0);
+                bestMove = this.model.get("bestMove");
+                row = bestMove[0];
+                col = bestMove[1];
+
+                this.model.markCell(this.model.cpuPlayer, row, col);
+                this.$(".e-cell-" + row + '-' + col).removeClass("open").append(this.cpuMarker);
+
+                winCells = this.model.getWinningSet(this.model.get("cells"), this.model.cpuPlayer);
+
+                if (winCells) {
+                    this.trigger("win", this.model.cpuPlayer);
+                    this.showWinners(winCells);
+                }
+                else if (!winCells && this.model.isGameOver(this.model.get("cells"))) {
                     this.endGame();
                 }
-                else if (winCells instanceof Array && winCells.length === 3) {
-                    this.trigger("win", currentPlayer); //Scoreboard will update on "win" event
-                    this.showWinners(winCells);
+                else {
+                    this.model.set("currentTurn", this.model.humanPlayer);
                 }
             },
 

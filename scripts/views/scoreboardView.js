@@ -18,7 +18,6 @@ define(
                 attr.oTurnVisibility = (attr.currentTurn === "o" ? "" : "invisible");
                 attr.xTurnVisibility = (attr.currentTurn === "x" ? "" : "invisible");
                 this.$el.html(this.template(attr));
-
                 return this;
             }
         });
